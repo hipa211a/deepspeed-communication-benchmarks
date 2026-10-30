@@ -50,7 +50,8 @@ Throughput and bus bandwidth in GB/s, duration in ms. Message size in GiB.
 
 - **Compare throughput, not duration, across systems.** Message sizes differ: they scale with device memory and `--mem-factor`, and `all_gather` also scales down with world size.
 - **Device counts differ.** A node has 4 MI300A APUs but 8 A100 GPUs, so equal node counts mean different world sizes.
-- **Throughput is a benchmark formula, not a link speed.** See `get_bw()` in the benchmark's `utils.py`; for example `all_reduce` counts twice the message size.
+- **Bus bandwidth uses the same formula as [nccl-tests](https://github.com/NVIDIA/nccl-tests) and [rccl-tests](https://github.com/ROCm/rccl-tests).** For `all_reduce`, `all_gather`, `all_to_all` and `broadcast`, the implementation here is in PyTorch, but bus bandwidth is calculated the same way, for example `all_reduce` is size / time × 2(n-1)/n. See `get_bw()` in the benchmark's `utils.py`. It is a calculated figure, not a link speed.
+- **Throughput matches those tests except for `all_reduce`.** This benchmark counts twice the message size there, so its `all_reduce` throughput is double the `algBw` that nccl-tests and rccl-tests report.
 - **`pt2pt` is not a cross-node measurement.** It always sends rank 0 to rank 1, which share a node under the block rank placement used here. The drop from 1 to 2 nodes is therefore unexplained by these runs and should not be read as network bandwidth.
 - **Each point is one job**, so there are no error bars. MI300A on 2 nodes has two complete runs, which differ by up to 4.4% (broadcast). A100 on 1 node has two, which differ by under 0.3%.
 
