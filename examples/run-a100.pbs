@@ -1,0 +1,23 @@
+#!/bin/bash
+# Example only: adapt the placeholders in <...> to your system.
+# Benchmark code: https://github.com/deepspeedai/DeepSpeedExamples/tree/master/benchmarks/communication
+#PBS -N ds_comm_a100
+#PBS -l select=<NODES>:node_type=<A100_NODE_TYPE>:mpiprocs=8
+#PBS -l walltime=00:15:00
+
+cd $PBS_O_WORKDIR
+
+# Activate a Python environment with PyTorch (CUDA) and DeepSpeed.
+RANKS_PER_NODE=8
+NUM_NODES=$(sort -u $PBS_NODEFILE | wc -l)
+
+export NCCL_DEBUG=WARN
+export MASTER_ADDR=$(head -n 1 $PBS_NODEFILE)
+export MASTER_PORT=29501
+
+# Open MPI syntax. Adjust PE to cores per node / ranks per node.
+mpirun -np $((NUM_NODES * RANKS_PER_NODE)) \
+    --map-by ppr:$RANKS_PER_NODE:node:PE=16 --bind-to core \
+    -x MASTER_ADDR -x MASTER_PORT \
+    ./launch.sh -u <PATH_TO>/DeepSpeedExamples/benchmarks/communication/run_all.py \
+    --bw-unit GBps

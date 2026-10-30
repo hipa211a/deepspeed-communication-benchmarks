@@ -1,0 +1,21 @@
+#!/bin/bash
+# Example only: adapt the placeholders in <...> to your system.
+# Benchmark code: https://github.com/deepspeedai/DeepSpeedExamples/tree/master/benchmarks/communication
+#PBS -N ds_comm_mi300a
+#PBS -l select=<NODES>:node_type=<MI300A_NODE_TYPE>:mpiprocs=4
+#PBS -l walltime=00:25:00
+
+cd $PBS_O_WORKDIR
+
+# Load PyTorch built for ROCm, with the libfabric NCCL plugin if your network needs it.
+RANKS_PER_NODE=4
+NUM_NODES=$(sort -u $PBS_NODEFILE | wc -l)
+
+export NCCL_DEBUG=WARN
+export MASTER_ADDR=$(head -n 1 $PBS_NODEFILE)
+export MASTER_PORT=29501
+
+# Cray MPICH syntax. Add --cpu-bind to pin each rank to the cores of its APU.
+mpirun -np $((NUM_NODES * RANKS_PER_NODE)) --ppn $RANKS_PER_NODE --genvall \
+    ./launch.sh -u <PATH_TO>/DeepSpeedExamples/benchmarks/communication/run_all.py \
+    --mem-factor 0.2 --bw-unit GBps
